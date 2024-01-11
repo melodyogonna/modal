@@ -12,7 +12,8 @@ async fn run() {
         .with_title("Modal Editor")
         .build(&event_loop)
         .unwrap();
-    let uistate = state::UIGraphicsState::new(window).await;
+
+    let mut uistate = state::UIGraphicsState::new(window).await;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -21,6 +22,17 @@ async fn run() {
                 event: WindowEvent::CloseRequested,
                 window_id,
             } if window_id == uistate.window.id() => *control_flow = ControlFlow::Exit,
+
+            Event::RedrawRequested(window_id) if window_id == uistate.window.id() => {
+                match uistate.render() {
+                    Ok(_) => {}
+                    Err(E) => eprintln!("{:?}", E),
+                }
+            }
+
+            Event::MainEventsCleared => {
+                uistate.window.request_redraw();
+            }
             _ => (),
         }
     });
