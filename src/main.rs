@@ -26,7 +26,7 @@ async fn run() {
             Event::RedrawRequested(window_id) if window_id == uistate.window.id() => {
                 match uistate.render() {
                     Ok(_) => {}
-                    Err(E) => eprintln!("{:?}", E),
+                    Err(e) => eprintln!("{:?}", e),
                 }
             }
 

@@ -1,4 +1,10 @@
 use winit::window::Window;
+use wgpu_text::{BrushBuilder, TextBrush};
+use wgpu_text::glyph_brush{Section, Text};
+
+pub trait Drawable {
+    fn draw(&self, render_pass: &wgpu::RenderPass);
+}
 
 pub struct UIGraphicsState {
     surface: wgpu::Surface,
@@ -72,7 +78,7 @@ impl UIGraphicsState {
         }
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, object: &impl Drawable) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -83,7 +89,7 @@ impl UIGraphicsState {
                 label: Some("Render encoder"),
             });
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -102,11 +108,35 @@ impl UIGraphicsState {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+
+            object.draw(&render_pass)
         }
 
-        self.queue.submit(std::iter::once(encoder.finish()));
+        self.queue.submit([encoder.finish()]);
         output.present();
 
         Ok(())
+    }
+}
+
+struct CustomText {
+    state: &UIGraphicsState,
+    brush: TextBrush,
+    section: Section,
+}
+
+impl CustomText {
+    pub fn new(state: &UIGraphicsState, text: String) -> Self {
+        let font: &[u8] - include_bytes!("fonts/SourceCodePro-Regular.ttf");
+        let brush = BrushBuilder::using_font_bytes.unwrap().build(state.device, state.size.width, state.size.height, state.config.format);
+        let section = Section::default().add_text(Text::new(text)).with_scale(font_size)
+        return Self { state, brush, section };
+    }
+}
+
+impl Drawable for CustomText {
+    fn draw(&self, render_pass: &wgpu::RenderPass) {
+        self.brush.queue(&self.state.device, &self.state.queue, vec![&self.section])
+        self.brush.draw(&render_pass)
     }
 }
